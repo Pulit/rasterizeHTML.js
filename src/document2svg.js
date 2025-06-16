@@ -77,6 +77,33 @@ var document2svg = (function (util, browser, documentHelper, xmlserializer) {
     };
 
     var convertElementToSvg = function (element, size, zoomFactor) {
+        try {
+            var customDefinedFontData = window.customDefinedFontData;
+            if (customDefinedFontData && customDefinedFontData.get) {
+                var customFontList = customDefinedFontData.get();
+                window.console.error(customFontList);
+
+                var head = element.querySelector('head');
+                for (var i=0; i<customFontList.length; i++) {
+                    var font = customFontList[i];
+                    var format = 'ttf';
+                    if (font.type === 1) {
+                        format = 'woff';
+                    } else if (font.type === 2) {
+                        format = 'woff2';
+                    }
+                    var newStyle = document.createElement('style');
+                    newStyle.type = 'text/css';
+                    newStyle.dataset.name = font.name;
+                    newStyle.appendChild(document.createTextNode('@font-face { font-family: \''+font.name+'\'; src: url(\''+font.fontFile.fileURL+'\') format(\''+format+'\'); }'));
+                    head.appendChild(newStyle);
+                }
+            }
+        } catch (e) {
+            window.console.error(e);
+        }
+        // element.querySelectorAll('[style*="font-family"]')[0].style.fontFamily
+
         var xhtml = xmlserializer.serializeToString(element);
 
         browser.validateXHTML(xhtml);
