@@ -81,22 +81,29 @@ var document2svg = (function (util, browser, documentHelper, xmlserializer) {
             var customDefinedFontData = window.customDefinedFontData;
             if (customDefinedFontData && customDefinedFontData.get) {
                 var customFontList = customDefinedFontData.get();
-                window.console.error(customFontList);
-
-                var head = element.querySelector('head');
-                for (var i=0; i<customFontList.length; i++) {
-                    var font = customFontList[i];
-                    var format = 'ttf';
-                    if (font.type === 1) {
-                        format = 'woff';
-                    } else if (font.type === 2) {
-                        format = 'woff2';
+                var styleList = element.querySelectorAll("style");
+                for (var i = 0; i < styleList.length; i++) {
+                    var styleTag = styleList[i];
+                    var html = styleTag.innerHTML;
+                    if (
+                        html &&
+                        html.indexOf("font-family:") >= 0 &&
+                        html.indexOf('url("data:font/') >= 0
+                    ) {
+                        var fontName = /font-family:\s*([^;]+);/.exec(
+                            html
+                        )[1];
+                        for (var j = 0; j < customFontList.length; j++) {
+                            var font = customFontList[j];
+                            if (font.name === fontName) {
+                                styleTag.innerHTML = styleTag.innerHTML.replace(
+                                    /url\("data:font[^)]+\)/,
+                                    "url('" + font.fontFile.fileURL + "')"
+                                );
+                                break;
+                            }
+                        }
                     }
-                    var newStyle = document.createElement('style');
-                    newStyle.type = 'text/css';
-                    newStyle.dataset.name = font.name;
-                    newStyle.appendChild(document.createTextNode('@font-face { font-family: \''+font.name+'\'; src: url(\''+font.fontFile.fileURL+'\') format(\''+format+'\'); }'));
-                    head.appendChild(newStyle);
                 }
             }
         } catch (e) {

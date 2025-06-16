@@ -1,4 +1,4 @@
-/*! rasterizeHTML.js - v1.3.1 - 2025-06-17
+/*! rasterizeHTML.js - v1.3.3 - 2025-06-17
 * http://www.github.com/Pulit/rasterizeHTML.js
 * Copyright (c) 2025 Christoph Burgmer; Licensed MIT */
 export as namespace rasterizeHTML;
