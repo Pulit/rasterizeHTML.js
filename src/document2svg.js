@@ -85,20 +85,28 @@ var document2svg = (function (util, browser, documentHelper, xmlserializer) {
                 for (var i = 0; i < styleList.length; i++) {
                     var styleTag = styleList[i];
                     var html = styleTag.innerHTML;
-                    if (
-                        html &&
-                        html.indexOf("font-family:") >= 0 &&
-                        html.indexOf('url("data:font/') >= 0
-                    ) {
-                        var fontName = /font-family:\s*([^;]+);/.exec(
+                    if (html && html.indexOf("font-family:") >= 0) {
+                        var fontName = /font-family:\s*['"]?([^;]+)['"]?;/.exec(
                             html
                         )[1];
+                        if (
+                            fontName.startsWith("'") ||
+                            fontName.startsWith('"')
+                        ) {
+                            fontName = fontName.substring(1);
+                        }
+                        if (fontName.endsWith("'") || fontName.endsWith('"')) {
+                            fontName = fontName.substring(
+                                0,
+                                fontName.length - 1
+                            );
+                        }
                         for (var j = 0; j < customFontList.length; j++) {
                             var font = customFontList[j];
-                            if (font.name === fontName) {
-                                styleTag.innerHTML = styleTag.innerHTML.replace(
-                                    /url\("data:font[^)]+\)/,
-                                    "url('" + font.fontFile.fileURL + "')"
+                            if (font.name === fontName && font.dataURL) {
+                                styleTag.innerHTML = html.replace(
+                                    /url\(["']blob:[^)]+["']\)/,
+                                    "url(\"" + font.dataURL + "\")"
                                 );
                                 break;
                             }
@@ -109,7 +117,6 @@ var document2svg = (function (util, browser, documentHelper, xmlserializer) {
         } catch (e) {
             window.console.error(e);
         }
-        // element.querySelectorAll('[style*="font-family"]')[0].style.fontFamily
 
         var xhtml = xmlserializer.serializeToString(element);
 
@@ -149,6 +156,47 @@ var document2svg = (function (util, browser, documentHelper, xmlserializer) {
                 documentHelper.fakeUserAction(element, options[action], action);
             }
         });
+
+        try {
+            var customDefinedFontData = window.customDefinedFontData;
+            if (customDefinedFontData && customDefinedFontData.get) {
+                var customFontList = customDefinedFontData.get();
+                var styleList = element.querySelectorAll("style");
+                for (var i = 0; i < styleList.length; i++) {
+                    var styleTag = styleList[i];
+                    var html = styleTag.innerHTML;
+                    if (html && html.indexOf("font-family:") >= 0) {
+                        var fontName = /font-family:\s*['"]?([^;]+)['"]?;/.exec(
+                            html
+                        )[1];
+                        if (
+                            fontName.startsWith("'") ||
+                            fontName.startsWith('"')
+                        ) {
+                            fontName = fontName.substring(1);
+                        }
+                        if (fontName.endsWith("'") || fontName.endsWith('"')) {
+                            fontName = fontName.substring(
+                                0,
+                                fontName.length - 1
+                            );
+                        }
+                        for (var j = 0; j < customFontList.length; j++) {
+                            var font = customFontList[j];
+                            if (font.name === fontName && font.fontFile && font.fontFile.fileURL && font.dataURL) {
+                                styleTag.innerHTML = html.replace(
+                                    /url\(["']data:font[^)]+["']\)/,
+                                    "url(\"" + font.fontFile.fileURL + "\")"
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            window.console.error(e);
+        }
 
         return browser
             .calculateDocumentContentSize(element, options)
